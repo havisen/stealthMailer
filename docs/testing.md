@@ -70,6 +70,7 @@ php tests/Integration/run-auth-https.php
 php tests/Integration/run-jobs-and-submissions.php
 php tests/Integration/run-send-api.php
 php tests/Integration/run-smtp-connectivity.php
+php tests/Integration/run-smtp-worker.php
 
 php bin/console.php mail:import
 php bin/console.php mail:test-account --id=acct_...
@@ -104,11 +105,14 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Jobs/submissions database | 7 checks, 0 failures |
 | Send API database | 6 checks, 0 failures |
 | SMTP connectivity | 10 assertions; implicit TLS, STARTTLS, auth failure, untrusted certificate, one accepted delivery |
+| Controlled SMTP worker | 34 assertions; accepted, RCPT 550/451, partial acceptance, DATA 550/451, final-DATA disconnect, interrupted lease, persistence failure after acceptance, and three-failure account pause |
 | Account storage and Proton SMTP | Encrypted DB account imported; `mail:test-account` authenticated to `smtp.protonmail.ch:587` without sending DATA |
 | IMAP/POP3 probes | Input validation, TLS connection, correct-credential acceptance, and wrong-password rejection passed against a disposable local TLS mock; real Private Email login awaits the mailbox password; synchronization is not implemented |
 | CLI recovery | exit 0; security version 5 to 6; audit event written; login over HTTPS passed afterwards |
 
-A PHP lint pass reported `Linted 142 PHP files; failures: 0`. The dependency lock was regenerated, validated, and installed; `composer install --dry-run` reported nothing to install.
+A PHP lint pass reported `Linted 143 PHP files; failures: 0`. The dependency lock was regenerated, validated, and installed; `composer install --dry-run` reported nothing to install.
+
+The controlled worker fixture is `tests/Fixtures/smtp/worker-server.js`; start it on ports 4465–4471 with a disposable test certificate and SMTP test credentials before running `run-smtp-worker.php`. The test skips when the fixture or disposable database is unavailable.
 
 ## Unverified behavior
 

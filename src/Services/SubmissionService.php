@@ -403,7 +403,12 @@ final class SubmissionService implements SubmissionDeliveryStore
             }
             if ($row['state'] === 'queued') {
                 $this->pdo->commit();
-                return JobResult::retry('internal', gmdate('Y-m-d H:i:s.u', time() + 5));
+                return JobResult::retry(
+                    'internal',
+                    (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+                        ->modify('+5 seconds')
+                        ->format('Y-m-d H:i:s.u')
+                );
             }
             $this->pdo->commit();
             return JobResult::complete();

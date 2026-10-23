@@ -594,11 +594,13 @@ class JobRepository
 
     private static function now(): string
     {
-        return gmdate('Y-m-d H:i:s.u');
+        return (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d H:i:s.u');
     }
 
     private static function afterSeconds(int $seconds): string
     {
-        return gmdate('Y-m-d H:i:s.u', time() + $seconds);
+        return (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+            ->modify('+' . $seconds . ' seconds')
+            ->format('Y-m-d H:i:s.u');
     }
 }

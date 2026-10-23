@@ -8,6 +8,10 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 final class PhpMailerSmtpTransport implements SmtpTransport
 {
+    public function __construct(private readonly string $caBundlePath = '')
+    {
+    }
+
     public function deliver(TransportMessage $message): DeliveryResult
     {
         $smtp = new InstrumentedSmtp();
@@ -36,6 +40,9 @@ final class PhpMailerSmtpTransport implements SmtpTransport
                 'allow_self_signed' => false,
             ],
         ];
+        if ($this->caBundlePath !== '') {
+            $mailer->SMTPOptions['ssl']['cafile'] = $this->caBundlePath;
+        }
         $mailer->CharSet = PHPMailer::CHARSET_UTF8;
         $mailer->Encoding = PHPMailer::ENCODING_QUOTED_PRINTABLE;
         $mailer->MessageID = $message->messageId;
@@ -103,7 +110,7 @@ final class PhpMailerSmtpTransport implements SmtpTransport
                 $category = $this->temporaryCode($record['code']) ? 'network' : 'permanent';
             } else {
                 $outcome = 'transient_failure';
-                $category = $this->preDataCategory($exception, $smtp->safeLastCode());
+                $category = $this->preDataCategory($exception, $smtp->safeLastCode(), $smtp->safeLastErrorDetail());
             }
             $outcomes[] = [
                 'ordinal' => $recipient['ordinal'],
@@ -124,17 +131,20 @@ final class PhpMailerSmtpTransport implements SmtpTransport
             return new DeliveryResult($temporary ? 'transient' : 'permanent', $temporary ? 'network' : 'permanent', $outcomes);
         }
 
-        $category = $this->preDataCategory($exception, $smtp->safeLastCode());
+        $category = $this->preDataCategory($exception, $smtp->safeLastCode(), $smtp->safeLastErrorDetail());
         $auth = $category === 'authentication';
         $hasPermanentRecipient = array_any(
             $outcomes,
             static fn (array $outcome): bool => $outcome['outcome'] === 'rejected'
         );
+        if ($hasPermanentRecipient && !in_array($category, ['authentication', 'configuration', 'tls', 'permanent'], true)) {
+            $category = 'permanent';
+        }
         $permanent = $auth || in_array($category, ['configuration', 'tls', 'permanent'], true) || $hasPermanentRecipient;
         return new DeliveryResult($permanent ? 'permanent' : 'transient', $category, $outcomes, $auth);
     }
 
-    private function preDataCategory(?\Throwable $exception, int $smtpCode): string
+    private function preDataCategory(?\Throwable $exception, int $smtpCode, string $detail = ''): string
     {
         if (in_array($smtpCode, [530, 534, 535, 538], true)) {
             return 'authentication';
@@ -142,7 +152,7 @@ final class PhpMailerSmtpTransport implements SmtpTransport
         if ($smtpCode >= 500) {
             return 'permanent';
         }
-        $message = strtolower(($exception?->getMessage() ?? '') . ' ' . $smtp->safeLastErrorDetail());
+        $message = strtolower(($exception?->getMessage() ?? '') . ' ' . $detail);
         if (str_contains($message, 'authenticate')) {
             return 'authentication';
         }

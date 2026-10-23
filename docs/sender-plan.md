@@ -19,7 +19,7 @@ For the first sender release, manual sending is a simple text/optional-HTML form
 
 ## How to execute
 
-Implement S0 through S9 in order, one reviewable package at a time. Every package starts with prerequisites, produces a working result, includes failure checks, and ends with documentation plus handover updates. Current status: S0/S1 foundation code is present but unverified; S2 authentication code is implemented but blocked on those dependencies and PHP/database/HTTPS evidence; the platform-independent cores of S3–S6 are present but remain blocked from integration and acceptance; S7–S9 are not started.
+Implement S0 through S9 in order, one reviewable package at a time. Every package starts with prerequisites, produces a working result, includes failure checks, and ends with documentation plus handover updates. Current status: S0–S2 foundation/auth are locally verified; S3 account setup is in progress; S4 durable submissions/jobs and S5 controlled-SMTP worker have local evidence; S6 is the next gate; S7–S9 are not started.
 
 ### S0 — Verify the sender's hosting prerequisites
 
@@ -78,6 +78,8 @@ Implement S0 through S9 in order, one reviewable package at a time. Every packag
 
 ### S4 — Persist submissions, attempts and database jobs
 
+**Status:** complete locally. Atomic enqueue, encrypted snapshots, browser-operation deduplication, cancellation, claim transitions, deadlines, recipient outcomes, leases, and conservative recovery passed the disposable-database suite. API/UI integration remains in S6/S7.
+
 **Deliver:** A durable enqueue service before real delivery is enabled.
 
 - Store submission ID, account, source (API/panel/test), API-key reference if applicable, recipients, encrypted content reference, stable Message-ID, created time, deadline, state and safe error category.
@@ -98,6 +100,8 @@ A definite transient non-acceptance may move sending back to queued within the d
 
 ### S5 — Deliver over SMTP without unsafe retries
 
+**Status:** in_progress. The real `SendWorker` and `PhpMailerSmtpTransport` passed controlled TLS fixtures for acceptance, RCPT 550/451, partial acceptance, DATA 550/451, final-DATA uncertainty, interrupted lease, persistence failure after acceptance, and authentication-failure pausing. Real-provider/cPanel delivery remains.
+
 **Deliver:** A bounded worker and accurately reported provider outcomes.
 
 - Use PHPMailer with TLS verification, explicit timeouts, configured account identity, UTF-8 content and a stable Message-ID. Never accept arbitrary SMTP credentials or From headers from an API request.
@@ -113,6 +117,8 @@ A definite transient non-acceptance may move sending back to queued within the d
 **Accept:** Exercise success, permanent rejection, temporary rejection, partial acceptance, timeout around DATA, interruption, and post-acceptance DB failure. Accepted/uncertain recipients never receive an automatic retry.
 
 ### S6 — Add API credentials and the sending endpoint
+
+**Status:** in_progress. The route is registered behind `ApiKeyMiddleware`, and unit/disposable-database checks pass. Real HTTP, OpenAPI comparison, and two-connection concurrency evidence are the next gate.
 
 **Deliver:** Backend-only mail submission with documented errors and atomic idempotency.
 

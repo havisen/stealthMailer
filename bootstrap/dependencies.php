@@ -144,7 +144,7 @@ $sendMailController = new SendMailController(
     $config->int('api.maximum_body_bytes'),
 );
 $apiKeyMiddleware = new ApiKeyMiddleware($apiKeyService, $responses, $streams);
-$transport = new PhpMailerSmtpTransport();
+$transport = new PhpMailerSmtpTransport((string) ($config->get('mail.tls_ca_bundle') ?? ''));
 $sendWorker = new SendWorker(
     $submissionService,
     $accountService,

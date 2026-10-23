@@ -135,7 +135,9 @@ final class WorkerRunner
                 (string) $job['public_id'],
                 $workerId,
                 $result->failureCategory ?? 'internal',
-                $result->scheduledAt ?? gmdate('Y-m-d H:i:s.u', time() + 60)
+                $result->scheduledAt ?? (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))
+                    ->modify('+60 seconds')
+                    ->format('Y-m-d H:i:s.u')
             ),
             'abandon' => true,
             default => false,

@@ -11,7 +11,7 @@ next contributor, who must follow the same rule.
 
 ## Current assignment
 
-The ownership contract below remains active. The foundation and S2 administrator boundary are now implemented but unverified; the platform-independent S3–S6 sender cores are present, while integration/acceptance still depends on PHP/Composer/database/HTTPS/SMTP evidence. The sender contributor owns the shared platform and outgoing mail. DeepSeek owns basic contacts; no contact package is implemented. Receiving, IMAP, replies, and tasks remain deferred. No contributor should modify the old one-way sender.
+The ownership contract below remains active. The foundation and S2 administrator boundary are locally verified; the S3 account panel and S4/S5 durable submission/controlled-SMTP worker have local evidence. S6 (the sole send API) is the next gate; real provider/cPanel acceptance remains outstanding. The sender contributor owns the shared platform and outgoing mail. DeepSeek owns basic contacts; no contact package is implemented. Receiving, IMAP, replies, and tasks remain deferred. No contributor should modify the old one-way sender.
 
 Read this document, AGENTS.md, handover.md, and your workstream plan before starting. The current detailed plans are docs/sender-plan.md and docs/contacts-deepseek.md. They narrow the next delivery slices of ROADMAP.md without removing its later features.
 

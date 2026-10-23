@@ -9,7 +9,7 @@ Never record secrets or private message contents. Repeat this requirement for th
 
 The SMTP delivery module turns an already durable `smtp.send` job into one bounded SMTP attempt without unsafe duplicate retries. It provides `SmtpTransport`, PHPMailer 7 integration, command instrumentation, `SendWorker`, and controlled transport test doubles. It does not implement the API, UI, IMAP, Sent-folder APPEND, contact creation, or attachment storage.
 
-The code is installed and locally verified for the connection path. Composer 2.10.3 installed `composer.lock`; migrations 002/003/007 were applied to the disposable local schema; and `tests/Integration/run-smtp-connectivity.php` exercised PHPMailer implicit TLS (465), STARTTLS (587), wrong-password authentication, untrusted-certificate rejection, and one accepted DATA delivery against a disposable server with a test CA. Controlled transport doubles still cover partial acceptance, retries, DATA uncertainty, and persistence failure. Real-provider TLS/limits, cPanel SMTP, RCPT rejection mixes, timeouts, crashes, and database-outage behavior remain unverified.
+The code is installed and locally verified. Composer 2.10.3 installed `composer.lock`; migrations 002/003/007 were applied to the disposable local schema. `tests/Integration/run-smtp-connectivity.php` exercised PHPMailer implicit TLS (465), STARTTLS (587), wrong-password authentication, untrusted-certificate rejection, and one accepted DATA delivery. `tests/Integration/run-smtp-worker.php` now drives the real `SendWorker` and `PhpMailerSmtpTransport` against a controlled TLS fixture for accepted DATA, RCPT 550/451, mixed partial acceptance, DATA 550/451, final-DATA disconnect, interrupted lease, persistence failure after acceptance, and three-authentication-failure account pausing. The transport now receives the configured `MAILPANEL_TLS_CA_BUNDLE`. Real-provider TLS/limits and cPanel SMTP remain unverified.
 
 ## Delivery workflow
 
@@ -39,7 +39,7 @@ Requirements: PHP 8.4 CLI, PDO MySQL, Sodium, OpenSSL, JSON, Composer, PHPMailer
 composer install --no-dev --classmap-authoritative
 ```
 
-The integration owner must build `AccountService` with `JobRepository`, build `SubmissionService`, instantiate `PhpMailerSmtpTransport`, register `SendWorker` as `smtp.send` in `bootstrap/worker.php`, and pass values from `config/mail.php`. Do not register a generic retry handler.
+The dependency container builds `AccountService` with `JobRepository` and `SubmissionService`, and instantiates `PhpMailerSmtpTransport` with the configured CA bundle. `bootstrap/worker.php` registers `SendWorker` as `smtp.send`. Do not register a generic retry handler.
 
 Run checks:
 
@@ -49,9 +49,25 @@ php tests/Unit/run-jobs.php
 php tests/Unit/run-submissions.php
 php tests/Unit/run-smtp-delivery.php
 php tests/Integration/run-jobs-and-submissions.php
+php tests/Integration/run-smtp-worker.php
 ```
 
-`run-smtp-delivery.php` is a controlled transport double covering acceptance, partial recipients, transient retry, attempt ceiling, uncertainty, disabled accounts, expired leases, and database persistence failure. It does not prove PHPMailer/provider behavior. A controlled verified-TLS SMTP server must still exercise RCPT 250/450/550 combinations, DATA 250/450/550, final-DATA disconnect, and transport timeouts before acceptance.
+The controlled worker fixture is `tests/Fixtures/smtp/worker-server.js`. Start it with the disposable database/SMTP environment and a trusted test certificate, then run the worker test:
+
+```sh
+MAILPANEL_SMTP_WORKER_BASE_PORT=4465 \
+MAILPANEL_SMTP_TEST_SERVER_KEY=/path/to/test.key \
+MAILPANEL_SMTP_TEST_SERVER_CERT=/path/to/test.crt \
+MAILPANEL_SMTP_TEST_USER=... \
+MAILPANEL_SMTP_TEST_PASSWORD=... \
+node tests/Fixtures/smtp/worker-server.js
+
+MAILPANEL_SMTP_WORKER_BASE_PORT=4465 \
+MAILPANEL_SMTP_TEST_CA_FILE=/path/to/test-ca.crt \
+php tests/Integration/run-smtp-worker.php
+```
+
+The fixture uses ports 4465–4471, one deterministic scenario per port. The worker test skips when the server, CA, credentials, or disposable database are unavailable. `run-smtp-delivery.php` remains the dependency-free transport-double check for CI environments without a controlled server.
 
 ## Troubleshooting and exact next step
 
@@ -61,6 +77,8 @@ php tests/Integration/run-jobs-and-submissions.php
 - `uncertain_outcome`: reconcile with provider logs or recipient evidence; never click/requeue broadly.
 - stale leased send: allow registered expired recovery to mark it uncertain.
 
-Exact next step: install PHP/Composer and a disposable database, generate a Composer lock, apply migrations, register the worker, run all local checks, then execute controlled TLS SMTP cases before any real-provider send.
+Local implementation notes: job/lease scheduling now uses microsecond UTC timestamps consistently (`gmdate(..., 'u')` was returning `.000000` and could make an immediately due job appear not yet scheduled); a permanent RCPT rejection now records the safe `permanent` category instead of `network`; and the transport uses the configured CA bundle rather than relying on the process default.
+
+Exact next step: keep the worker paused at the proxy, add real-provider/cPanel send evidence under the release milestone, and proceed to Gate D (the sole send API) with real HTTP, OpenAPI, and two-connection idempotency tests.
 
 **Read and update handover.md before handing over, and require the next contributor to do the same.**

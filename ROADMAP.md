@@ -17,7 +17,7 @@ This roadmap governs the whole project and is implemented piece by piece. Milest
 
 ## Active work split
 
-The next release slice is sender-only mail plus an independently developed contacts module. Read docs/workstreams.md for ownership, migration reservations, integration contracts and merge rules. Sender packages S0–S9 are detailed in docs/sender-plan.md; DeepSeek contacts packages C1–C4 are in docs/contacts-deepseek.md. S0–S2 now have local runtime, database, real-HTTPS, and SMTP authentication evidence. S3 account setup is in progress; S4 onward remain blocked from acceptance by real outbound delivery, IMAP/POP3 authentication, and real-provider checks. Contact packages remain `not_started`.
+The next release slice is sender-only mail plus an independently developed contacts module. Read docs/workstreams.md for ownership, migration reservations, integration contracts and merge rules. Sender packages S0–S9 are detailed in docs/sender-plan.md; DeepSeek contacts packages C1–C4 are in docs/contacts-deepseek.md. S0–S2 now have local runtime, database, real-HTTPS, and SMTP authentication evidence. S3 account setup is in progress; S4/S5 have durable submission/job and controlled-SMTP worker evidence; S6 (the sole send API) is the next gate. Real-provider delivery, IMAP/POP3 authentication, and cPanel checks remain outstanding. Contact packages remain `not_started`.
 
 SMTP feasibility does not wait for IMAP feasibility. SMTP accounts may be configured without IMAP. The sender slice defers manual attachments/drafts, replies, inbox and Sent-folder APPEND to the full-mail milestones below. Its partially_accepted state records mixed SMTP recipient results and never triggers a whole-message resend. Contacts do not implement task or received-message links yet. These slice-specific plans govern current execution while the milestones below remain the whole-project backlog.
 
@@ -77,7 +77,7 @@ Status: in_progress. Dependencies: 2. The authenticated account panel, encrypted
 
 ### Milestone 4 — Durable outbound service
 
-Status: blocked. Dependencies: 3. The isolated durable submission and SMTP worker cores are implemented, but account/foundation wiring, database execution, controlled SMTP acceptance, and real-provider verification are missing.
+Status: in_progress. Dependencies: 3. Durable submissions/jobs, atomic enqueue/cancellation, encrypted snapshots, leases, retries, and the real PHPMailer worker were verified against a controlled TLS SMTP fixture on 2026-10-23. Accepted, RCPT 550/451, partial, DATA 550/451, final-DATA uncertainty, interrupted lease, persistence failure after acceptance, and auth-failure pause all passed. Real-provider/cPanel delivery, Sent-copy behavior, and API integration evidence remain.
 
 **Work:** Create durable immutable submissions with To/Cc/Bcc, subject, text/HTML, attachments, Message-ID, expiry, limits, and account identity checks. Track queued/sending/accepted/failed/uncertain/expired/canceled states. Keep Sent-copy state separate; use bounded retries only when non-acceptance is established. Never auto-resend uncertain sends.
 
@@ -87,7 +87,7 @@ Status: blocked. Dependencies: 3. The isolated durable submission and SMTP worke
 
 ### Milestone 5 — Send-only API
 
-Status: blocked. Dependencies: 4. The isolated API-key management, send controller/service, validation, atomic idempotency/quota schema, OpenAPI, and tests are implemented. Shared bootstrap/route/request-ID wiring, migration execution, HTTP/concurrency verification, and the blocked durable-outbound dependencies prevent completion.
+Status: in_progress. Dependencies: 4. The API-key management, send controller/service, validation, atomic idempotency/quota schema, OpenAPI, and disposable-database tests are implemented; the route is registered behind `ApiKeyMiddleware` and request IDs. Real HTTP response tests, OpenAPI comparison, two-connection idempotency/rate races, and real-provider delivery remain.
 
 **Work:** Implement only POST /api/v1/mail/send. Add hashed/revocable keys, mail:send sender scopes, rate limits, atomic idempotency, safe errors, OpenAPI and server-side examples. Callers supply and verify codes/links themselves. No incoming or external status-reading endpoints.
 

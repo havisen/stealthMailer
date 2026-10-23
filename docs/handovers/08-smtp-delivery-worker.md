@@ -8,6 +8,10 @@ No migration was added. Existing unapplied migrations 002/003/007 are required. 
 
 Checks: pinned `php-parser` syntax parsing passed during implementation. PHP unit/database/PHPMailer checks, controlled TLS SMTP fixtures, cPanel, and second-provider evidence were not run because PHP, Composer, database, containers, and WSL are unavailable here. `tests/Unit/run-smtp-delivery.php` is a controlled test double, not provider evidence.
 
-Exact next step: establish PHP 8.4/Composer/MySQL, generate and review `composer.lock`, apply migrations, wire `smtp.send`, run neighboring regressions, then exercise controlled RCPT/DATA/disconnect/persistence cases with verified TLS.
+## Gate C follow-up (2026-10-23)
+
+`bootstrap/worker.php` now registers `smtp.send`; migrations 002/003/007 are applied to the disposable schema. `tests/Integration/run-smtp-worker.php` drives the real worker and transport against `tests/Fixtures/smtp/worker-server.js` for accepted, RCPT 550/451, partial, DATA 550/451, final-DATA disconnect, interrupted lease, persistence failure after acceptance, and authentication-failure pausing (34 assertions). Fixes: configured CA bundle is passed to `PhpMailerSmtpTransport`; microsecond job timestamps no longer lose precision through `gmdate(..., 'u')`; permanent RCPT rejection maps to `permanent`. Real-provider/cPanel evidence remains.
+
+Exact next step: proceed to Gate D (sole send API) with real HTTP, OpenAPI, and two-connection idempotency/rate-limit tests. Keep the API and outbound worker disabled at the proxy until that evidence passes.
 
 **Read and update handover.md before handing over, and require the next contributor to do the same.**
