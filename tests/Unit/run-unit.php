@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Mail\MailboxConnectionTester;
 use App\Mail\SmtpConnectionTester;
 use App\Mail\SmtpProbe;
 use App\Repositories\AccountRepository;
@@ -15,6 +16,7 @@ require __DIR__ . '/../../src/Repositories/AccountRepository.php';
 require __DIR__ . '/../../src/Services/SendingAccountProvider.php';
 require __DIR__ . '/../../src/Services/AccountService.php';
 require __DIR__ . '/../../src/Mail/SmtpConnectionTester.php';
+require __DIR__ . '/../../src/Mail/MailboxConnectionTester.php';
 
 $tests = [];
 
@@ -286,8 +288,7 @@ test('account service reports a missing delete target', function () use ($servic
 });
 
 $probe = new FakeSmtpProbe();
-$tester = new SmtpConnectionTester($probe);
-$probeConfiguration = [
+$tester = new SmtpConnectionTester($probe);$probeConfiguration = [
     'host' => 'mail.example.com',
     'port' => 587,
     'tls' => 'starttls',
@@ -325,6 +326,17 @@ test('SMTP tester clamps timeouts to one second', function () use ($tester, $pro
     $tester->test($probeConfiguration, 0, -1);
     same(1, $probe->connectTimeout);
     same(1, $probe->operationTimeout);
+});
+
+$mailboxTester = new MailboxConnectionTester();
+test('mailbox tester rejects an empty password before connecting', function () use ($mailboxTester): void {
+    same('protocol', $mailboxTester->imap('mail.example.com', 993, 'user@example.com', ''));
+});
+test('mailbox tester rejects control characters before connecting', function () use ($mailboxTester): void {
+    same('protocol', $mailboxTester->imap('mail.example.com', 993, "user\n@example.com", 'secret'));
+});
+test('mailbox tester rejects an invalid port before connecting', function () use ($mailboxTester): void {
+    same('protocol', $mailboxTester->pop3('mail.example.com', 0, 'user@example.com', 'secret'));
 });
 
 $passed = 0;

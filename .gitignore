@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+/config/*.local.php
 
 # Composer and test output
 /vendor/

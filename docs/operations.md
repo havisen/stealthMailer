@@ -63,6 +63,14 @@ SMTP operations additionally require Composer installation, PHPMailer 7.1, OpenS
 
 The send route is registered at `POST /api/v1/mail/send` behind `ApiKeyMiddleware`, and migration 008 is applied locally. Real HTTP response validation against `docs/openapi.yaml`, two-connection idempotency/rate races, replay-key cleanup, and provider acceptance remain required before enabling it. Monitor 429/503 rates and idempotency/rate-table cleanup; never log Authorization, idempotency keys, request bodies, or replay responses. Retain replay mappings seven days, including after encrypted terminal content is purged. On restore keep the API and outbound workers disabled, review key revocations and queued/in-flight work, and rotate credentials if backup exposure is suspected.
 
+## Sending account operations
+
+- Manage senders at `/accounts` behind administrator authentication and action-specific CSRF. The form accepts host, port (`465`/`587` only), username, password, sender identity, enabled state, and limits. It never redisplays a stored password.
+- `config/mail.php` is the committed allow-list; `MAILPANEL_APPROVED_SMTP_ENDPOINTS` overrides it. Add only operator-approved providers.
+- `config/mail.local.php` is gitignored test-only configuration. Use `php bin/console.php mail:import` to create or update the encrypted database account, then `mail:test-account --id=acct_...` to verify it. Never commit the token; rotate it after testing.
+- The local Proton account authenticated successfully without sending DATA. IMAP/POP3 authentication probes are `mail:test-imap` and `mail:test-pop3`; they prompt for the mailbox password and perform authentication only. Inbox synchronization is not implemented.
+- Back up `security.credential_keys` separately; a restored database without the matching keys cannot decrypt stored SMTP credentials.
+
 ## SMTP account operational notes
 
 - Back up credential master keys separately from, but together with, the database recovery set. Losing all historical keys makes stored SMTP passwords unrecoverable.

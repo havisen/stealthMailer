@@ -62,7 +62,7 @@ Implement S0 through S9 in order, one reviewable package at a time. Every packag
 
 ### S3 — Configure SMTP-only sending accounts
 
-**Status:** blocked/partial. Credential encryption, endpoint policy, migration, repository, service, connection-test contract, and module tests are present. S0–S2 now provide verified hosting, Composer/bootstrap, applied migrations, dependency wiring, administrator authentication, and CSRF. The package still needs its authenticated panel routes and a real provider connection test before acceptance.
+**Status:** in_progress. Credential encryption, endpoint policy, migration, repository, service, connection-test contract, authenticated panel routes, and module tests are present. S0–S2 provide verified hosting, Composer/bootstrap, applied migrations, dependency wiring, administrator authentication, and CSRF. A stored Proton account authenticated successfully without sending DATA. Remaining: Private Email IMAP/POP3 authentication, wrong-credential/TLS/restore acceptance, and real outbound delivery.
 
 **Deliver:** Add/edit/disable accounts and independent connection tests.
 

@@ -5,10 +5,13 @@ declare(strict_types=1);
 use App\Api\SendRequestValidator;
 use App\App\AppContext;
 use App\Config\Config;
+use App\Controllers\AccountController;
 use App\Controllers\Api\SendMailController;
 use App\Controllers\AuthController;
 use App\Database\MigrationRunner;
+use App\Mail\PhpMailerSmtpProbe;
 use App\Mail\PhpMailerSmtpTransport;
+use App\Mail\SmtpConnectionTester;
 use App\Mail\SmtpTransport;
 use App\Middleware\ApiKeyMiddleware;
 use App\Repositories\AccountRepository;
@@ -102,6 +105,18 @@ $submissionValidator = new SubmissionValidator(
 );
 
 $accountService = new AccountService($accounts, $credentialCipher, $endpointPolicy, $jobs);
+$smtpConnectionTester = new SmtpConnectionTester(
+    new PhpMailerSmtpProbe((string) ($config->get('mail.tls_ca_bundle') ?? '')),
+);
+$accountController = new AccountController(
+    $accountService,
+    $smtpConnectionTester,
+    $csrf,
+    $context->view,
+    $responses,
+    $config->int('mail.connect_timeout_seconds'),
+    $config->int('mail.operation_timeout_seconds'),
+);
 $submissionService = new SubmissionService(
     $context->pdo,
     $accounts,
@@ -173,6 +188,8 @@ $dependencies = [
     EndpointPolicy::class => $endpointPolicy,
     SubmissionValidator::class => $submissionValidator,
     AccountService::class => $accountService,
+    AccountController::class => $accountController,
+    SmtpConnectionTester::class => $smtpConnectionTester,
     SubmissionService::class => $submissionService,
     ApiKeyService::class => $apiKeyService,
     SendRequestValidator::class => $sendRequestValidator,

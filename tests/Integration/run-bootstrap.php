@@ -113,9 +113,25 @@ try {
         $routes[] = implode('|', $route->getMethods()) . ' ' . $route->getPattern();
     }
     sort($routes);
-    foreach (['GET /login', 'POST /login', 'GET /', 'GET /settings/password', 'POST /settings/password', 'POST /logout'] as $expected) {
+    foreach ([
+        'GET /login',
+        'POST /login',
+        'GET /',
+        'GET /settings/password',
+        'POST /settings/password',
+        'POST /logout',
+        'GET /accounts',
+        'GET /accounts/create',
+        'POST /accounts',
+        'GET /accounts/{id}/edit',
+        'POST /accounts/{id}/edit',
+        'POST /accounts/{id}/test',
+        'POST /accounts/{id}/disable',
+        'POST /accounts/{id}/delete',
+    ] as $expected) {
         $assert(in_array($expected, $routes, true), 'Missing route: ' . $expected);
     }
+    $assert(count($routes) === 15, 'Unexpected route count: ' . count($routes));
     $apiRoutes = array_values(array_filter($routes, static fn (string $route): bool => str_contains($route, '/api/')));
     $assert($apiRoutes === ['POST /api/v1/mail/send'], 'The external API surface is not exactly the send endpoint.');
     $factory = new ServerRequestFactory();

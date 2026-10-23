@@ -17,7 +17,7 @@ This roadmap governs the whole project and is implemented piece by piece. Milest
 
 ## Active work split
 
-The next release slice is sender-only mail plus an independently developed contacts module. Read docs/workstreams.md for ownership, migration reservations, integration contracts and merge rules. Sender packages S0–S9 are detailed in docs/sender-plan.md; DeepSeek contacts packages C1–C4 are in docs/contacts-deepseek.md. The shared foundation and administrator boundary now have local runtime, database, real-HTTPS, and SMTP evidence; S1 is in progress and S2 onward remain blocked from acceptance by missing real-provider/IMAP and HTTP integration. Contact packages remain `not_started`.
+The next release slice is sender-only mail plus an independently developed contacts module. Read docs/workstreams.md for ownership, migration reservations, integration contracts and merge rules. Sender packages S0–S9 are detailed in docs/sender-plan.md; DeepSeek contacts packages C1–C4 are in docs/contacts-deepseek.md. S0–S2 now have local runtime, database, real-HTTPS, and SMTP authentication evidence. S3 account setup is in progress; S4 onward remain blocked from acceptance by real outbound delivery, IMAP/POP3 authentication, and real-provider checks. Contact packages remain `not_started`.
 
 SMTP feasibility does not wait for IMAP feasibility. SMTP accounts may be configured without IMAP. The sender slice defers manual attachments/drafts, replies, inbox and Sent-folder APPEND to the full-mail milestones below. Its partially_accepted state records mixed SMTP recipient results and never triggers a whole-message resend. Contacts do not implement task or received-message links yet. These slice-specific plans govern current execution while the milestones below remain the whole-project backlog.
 
@@ -57,7 +57,7 @@ Status: complete. Dependencies: 0. Locally verified on 2026-10-23: dependencies 
 
 ### Milestone 2 — Independent administrator access
 
-Status: complete. Dependencies: 1. Locally verified on 2026-10-23: unit 16, database 28, Slim HTTP 16, and real-HTTPS 52 assertions passed; login/logout/CSRF/password change/expiry/throttling and CLI recovery behaved securely. Production reverse-proxy behavior, throttle races, bounded cleanup, and backup/restore remain operational/release checks.
+Status: complete. Dependencies: 1. Locally verified on 2026-10-23: unit 16, database 28, Slim HTTP 35, and real-HTTPS 59 assertions passed; login/logout/CSRF/password change/expiry/throttling and CLI recovery behaved securely. Production reverse-proxy behavior, throttle races, bounded cleanup, and backup/restore remain operational/release checks.
 
 **Work:** Create the administrator through CLI. Implement password hashing, login/logout/password change, session regeneration and expiry, Secure/HttpOnly/SameSite cookies, CSRF, throttling, safe audit events, and CLI recovery.
 
@@ -67,7 +67,7 @@ Status: complete. Dependencies: 1. Locally verified on 2026-10-23: unit 16, data
 
 ### Milestone 3 — Mail account setup
 
-Status: blocked. Dependencies: 2. The platform-independent SMTP account core is implemented, but milestones 0–2, HTTP/panel integration, migration execution, and real-provider verification are missing.
+Status: in_progress. Dependencies: 2. The authenticated account panel, encrypted database persistence, endpoint allow-list, CSRF-protected create/edit/test/disable/delete routes, and real Proton SMTP authentication are locally verified. Remaining: Private Email IMAP/POP3 authentication with the mailbox password, wrong-credential/TLS/restore acceptance evidence, explicit test-email behavior, and production provider checks.
 
 **Work:** Implement create/edit/disable/remove, separate SMTP and IMAP credentials, authenticated encryption, approved endpoints, sender identities, and Sent-folder mode. Validate network destinations, TLS, ports, and narrow operator-controlled private-host exceptions. Diagnose IMAP and SMTP separately; explicit test email only.
 

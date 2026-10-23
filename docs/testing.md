@@ -70,6 +70,11 @@ php tests/Integration/run-auth-https.php
 php tests/Integration/run-jobs-and-submissions.php
 php tests/Integration/run-send-api.php
 php tests/Integration/run-smtp-connectivity.php
+
+php bin/console.php mail:import
+php bin/console.php mail:test-account --id=acct_...
+php bin/console.php mail:test-imap --password-stdin
+php bin/console.php mail:test-pop3 --password-stdin
 ```
 
 The authentication integration scripts require `MAILPANEL_TEST_ALLOW_RESET=1` plus `MAILPANEL_TEST_DB_DSN`, `MAILPANEL_TEST_DB_USER`, and `MAILPANEL_TEST_DB_PASSWORD`; they drop authentication tables and must target only a disposable schema. Exact examples are in `docs/authentication.md`. The HTTPS test additionally needs `MAILPANEL_HTTPS_BASE_URL`, `MAILPANEL_HTTPS_CA_FILE`, `MAILPANEL_HTTPS_TEST_EMAIL`, and `MAILPANEL_HTTPS_TEST_PASSWORD`. The SMTP test needs the `MAILPANEL_SMTP_TEST_*` variables and a disposable server with a test CA.
@@ -85,7 +90,7 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Migrations | 001/002/003/006/007/008 applied; 004/005 empty and skipped; repeat `up` reported no pending work; status all APPLIED |
 | Foundation | 22 assertions |
 | Unit auth | 16 assertions |
-| Unit core | 40 checks |
+| Unit core | 43 checks |
 | Unit jobs | 8 checks |
 | Unit submissions | 10 checks |
 | Unit SMTP delivery | 0 failures |
@@ -93,16 +98,18 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Unit send API | 0 failures |
 | Migration locking | 8 assertions |
 | Authentication database | 28 assertions |
-| Authentication HTTP | 16 assertions |
-| Authentication HTTPS | 52 assertions |
-| Bootstrap/runtime | 28 assertions; 7 routes; 20 Twig templates |
+| Authentication HTTP | 35 assertions, including the full account lifecycle (create, edit, disable, delete) and CSRF rejection |
+| Authentication HTTPS | 59 assertions, including the authenticated account list/form |
+| Bootstrap/runtime | 37 assertions; 15 routes; 20 Twig templates |
 | Jobs/submissions database | 7 checks, 0 failures |
 | Send API database | 6 checks, 0 failures |
 | SMTP connectivity | 10 assertions; implicit TLS, STARTTLS, auth failure, untrusted certificate, one accepted delivery |
+| Account storage and Proton SMTP | Encrypted DB account imported; `mail:test-account` authenticated to `smtp.protonmail.ch:587` without sending DATA |
+| IMAP/POP3 probes | Input validation, TLS connection, correct-credential acceptance, and wrong-password rejection passed against a disposable local TLS mock; real Private Email login awaits the mailbox password; synchronization is not implemented |
 | CLI recovery | exit 0; security version 5 to 6; audit event written; login over HTTPS passed afterwards |
 
-A PHP lint pass reported `Linted 138 PHP files; failures: 0`. The dependency lock was regenerated, validated, and installed; `composer install --dry-run` reported nothing to install.
+A PHP lint pass reported `Linted 142 PHP files; failures: 0`. The dependency lock was regenerated, validated, and installed; `composer install --dry-run` reported nothing to install.
 
 ## Unverified behavior
 
-This Windows host does not provide cPanel, a real mailbox, real IMAP 993, a real SMTP provider, a production reverse proxy, or production cron. Still unverified: cPanel/cron timing, forwarded-proxy behavior, real provider TLS/limits, IMAP/UIDVALIDITY protocol behavior, throttle races under concurrency, OpenAPI response-by-response validation, bounded retention cleanup, backup/restore, accessibility, and production deployment. Keep outbound and the public API disabled until their acceptance checks pass.
+This Windows host does not provide cPanel, a real mailbox, real IMAP 993 login, a production reverse proxy, or production cron. Still unverified: cPanel/cron timing, forwarded-proxy behavior, real provider TLS/limits and outbound delivery, real IMAP/POP3 authentication and IMAP/UIDVALIDITY synchronization, throttle races under concurrency, OpenAPI response-by-response validation, bounded retention cleanup, backup/restore, accessibility, and production deployment. Keep outbound and the public API disabled until their acceptance checks pass.

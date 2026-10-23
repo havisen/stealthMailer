@@ -52,7 +52,10 @@ final class ConfigLoader
 
         $queue = require $basePath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'queue.php';
         $mail = require $basePath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'mail.php';
-        $approvedEndpoints = self::approvedEndpoints($environment);
+        $approvedEndpoints = self::approvedEndpoints(
+            $environment,
+            is_array($mail['approved_endpoints'] ?? null) ? $mail['approved_endpoints'] : [],
+        );
         $api = require $basePath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'api.php';
         $app = require $basePath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'app.php';
         $security = require $basePath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'security.php';
@@ -221,14 +224,15 @@ final class ConfigLoader
 
     /**
      * @param array<string, mixed> $environment
+     * @param array<int, array<string, mixed>> $fallback Operator-owned config/mail.php list
      * @return list<array{host:string,port?:int,tls?:string,allow_private?:bool}>
      */
-    private static function approvedEndpoints(array $environment): array
+    private static function approvedEndpoints(array $environment, array $fallback): array
     {
         $name = 'MAILPANEL_APPROVED_SMTP_ENDPOINTS';
         $value = $environment[$name] ?? null;
         if ($value === null || (is_string($value) && trim($value) === '')) {
-            return [];
+            return self::normalizeApprovedEndpoints($fallback, 'config/mail.php approved_endpoints');
         }
         if (!is_string($value)) {
             throw new ConfigException(sprintf('%s must contain a JSON array.', $name));
@@ -243,15 +247,27 @@ final class ConfigLoader
             throw new ConfigException(sprintf('%s must contain a JSON array.', $name));
         }
 
+        return self::normalizeApprovedEndpoints($decoded, $name);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>|\stdClass> $decoded
+     * @return list<array{host:string,port?:int,tls?:string,allow_private?:bool}>
+     */
+    private static function normalizeApprovedEndpoints(array $decoded, string $name): array
+    {
         $allowedKeys = ['host' => true, 'port' => true, 'tls' => true, 'allow_private' => true];
         $endpoints = [];
-        foreach ($decoded as $position => $entry) {
+        foreach (array_values($decoded) as $position => $entry) {
             $index = $position + 1;
-            if (!$entry instanceof \stdClass) {
+            if ($entry instanceof \stdClass) {
+                $fields = get_object_vars($entry);
+            } elseif (is_array($entry)) {
+                $fields = $entry;
+            } else {
                 throw new ConfigException(sprintf('%s entry %d must be an object.', $name, $index));
             }
 
-            $fields = get_object_vars($entry);
             foreach (array_keys($fields) as $key) {
                 if (!isset($allowedKeys[$key])) {
                     throw new ConfigException(sprintf('%s entry %d contains an unknown key.', $name, $index));

@@ -273,6 +273,32 @@ try {
     $assert(str_contains($dashboard['body'], $email), 'Dashboard does not identify the administrator.');
     $logoutToken = $csrf($dashboard['body']);
 
+    $accountsPage = $request('GET', $baseUrl . '/accounts', $jar);
+    $assert($accountsPage['status'] === 200, 'Authenticated sending-account list did not render over HTTPS.');
+    $assert(str_contains($accountsPage['body'], 'Sending accounts'), 'Sending-account list content is missing.');
+    $accountLabel = getenv('MAILPANEL_HTTPS_TEST_ACCOUNT_LABEL');
+    if (is_string($accountLabel) && $accountLabel !== '') {
+        $assert(str_contains($accountsPage['body'], $accountLabel), 'Imported sending account is not listed.');
+    }
+    $accountCreatePage = $request('GET', $baseUrl . '/accounts/create', $jar);
+    $assert($accountCreatePage['status'] === 200, 'Sending-account form did not render over HTTPS.');
+    $assert(
+        preg_match('/name="password"[^>]*value="[^"]*"/i', $accountCreatePage['body']) !== 1,
+        'Sending-account form rendered a stored password value.',
+    );
+    $accountCreateToken = $csrf($accountCreatePage['body']);
+    $accountWithoutCsrf = $request('POST', $baseUrl . '/accounts', $jar, [
+        'label' => 'Synthetic account',
+        'smtp_host' => 'evil.example.test',
+        'smtp_port' => '587',
+        'smtp_username' => 'sender@example.test',
+        'password' => 'synthetic password value',
+        'from_email' => 'sender@example.test',
+        'enabled' => '1',
+    ]);
+    $assert($accountWithoutCsrf['status'] === 403, 'Sending-account creation without CSRF was accepted over HTTPS.');
+    $assert($accountCreateToken !== '', 'Sending-account form did not render a CSRF token.');
+
     $passwordPage = $request('GET', $baseUrl . '/settings/password', $jar);
     $assert($passwordPage['status'] === 200, 'Password page did not render over HTTPS.');
     $passwordToken = $csrf($passwordPage['body']);

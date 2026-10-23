@@ -62,6 +62,33 @@ $assert($redacted['database']['dsn'] === '[redacted]', 'Database DSN was not red
 $assert($redacted['security']['credential_keyset'] === '[redacted]', 'Credential keyset was not redacted.');
 $assert($redacted['security']['auth_csrf_key'] === '[redacted]', 'Authentication CSRF key was not redacted.');
 
+$approved = $config->get('mail.approved_endpoints');
+$assert(is_array($approved) && count($approved) === 3, 'The committed SMTP endpoint allow-list was not loaded.');
+$assert(
+    array_any(
+        $approved,
+        static fn (array $endpoint): bool => ($endpoint['host'] ?? null) === 'smtp.protonmail.ch'
+            && ($endpoint['port'] ?? null) === 587
+            && ($endpoint['tls'] ?? null) === 'starttls',
+    ),
+    'The Proton STARTTLS endpoint is missing from the allow-list.'
+);
+$override = ConfigLoader::fromEnvironment(array_merge($environment, [
+    'MAILPANEL_APPROVED_SMTP_ENDPOINTS' => json_encode([
+        ['host' => 'smtp.example.test', 'port' => 587, 'tls' => 'starttls'],
+    ], JSON_THROW_ON_ERROR),
+]), $basePath);
+$assert(
+    $override->get('mail.approved_endpoints.0.host') === 'smtp.example.test',
+    'The environment endpoint override was not applied.'
+);
+$assertThrows(
+    static fn () => ConfigLoader::fromEnvironment(array_merge($environment, [
+        'MAILPANEL_APPROVED_SMTP_ENDPOINTS' => '[{"host":"smtp.example.test","port":25}]',
+    ]), $basePath),
+    'An unsupported SMTP endpoint port should be rejected.'
+);
+
 $assertThrows(
     static fn () => ConfigLoader::fromEnvironment(array_diff_key($environment, ['MAILPANEL_DB_USER' => true]), $basePath),
     'Missing database user should fail configuration loading.'

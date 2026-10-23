@@ -63,6 +63,14 @@ Names only; real values must not be committed.
 
 Per-account limits are stored in `mail_accounts`: `max_recipients`, `max_hourly_recipients`, and `max_outbound_bytes`. Configuration loading and validation remain part of sender package S1.
 
+## Sending account allow-list and local test configuration
+
+`config/mail.php` is the operator-owned SMTP endpoint allow-list. It currently approves `smtp.protonmail.ch:587` (STARTTLS) and `mail.privateemail.com:465`/`:587` (implicit TLS/STARTTLS). `MAILPANEL_APPROVED_SMTP_ENDPOINTS` overrides that list when set; the value is a JSON array of `{host, port?, tls?, allow_private?}` entries and is validated before use.
+
+`config/mail.local.php` is an optional, gitignored test-only file (`/config/*.local.php`). It may hold a disposable Proton sender token and Private Email IMAP/POP3 endpoints. Never commit it, copy it under `public/`, or log its contents. The final application accepts sender credentials through the authenticated `/accounts` form and stores them encrypted in `mail_accounts`; the local file is only for import/connectivity testing.
+
+CLI commands are `mail:import`, `mail:test-smtp`, `mail:test-account --id=acct_...`, `mail:test-imap`, and `mail:test-pop3`. IMAP/POP3 commands prompt for the mailbox password and perform authentication only; synchronization is not implemented. Use `--password-stdin` to avoid visible input on Windows.
+
 ## Job worker configuration
 
 `config/queue.php` defines `run_budget_seconds` (40), `lease_seconds` (30), `minimum_start_seconds` (5), `recovery_limit` (25), and priorities for the independent `outbound`, `sync`, and `maintenance` queues. CLI database names are `MAILPANEL_DB_DSN`, `MAILPANEL_DB_USER`, and `MAILPANEL_DB_PASSWORD`. Values are deployment secrets and must be injected outside `public/` and version control. See `docs/jobs.md`; feature handlers must use remaining-budget-aware network timeouts.

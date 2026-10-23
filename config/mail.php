@@ -3,8 +3,13 @@
 declare(strict_types=1);
 
 return [
-    // Operators populate this allow-list with host, optional port/tls, and optional allow_private.
-    'approved_endpoints' => [],
+    // Operators can add endpoints here or override them with
+    // MAILPANEL_APPROVED_SMTP_ENDPOINTS. Certificate verification stays mandatory.
+    'approved_endpoints' => [
+        ['host' => 'smtp.protonmail.ch', 'port' => 587, 'tls' => 'starttls'],
+        ['host' => 'mail.privateemail.com', 'port' => 465, 'tls' => 'implicit'],
+        ['host' => 'mail.privateemail.com', 'port' => 587, 'tls' => 'starttls'],
+    ],
     'connect_timeout_seconds' => 10,
     'operation_timeout_seconds' => 20,
     'retry_delays_seconds' => [60, 120, 240],

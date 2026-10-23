@@ -3,7 +3,8 @@
 {% block content %}
   <h1>Mail panel</h1>
   <p>Signed in as {{ administrator.email }}.</p>
-  <p>Sending accounts, Outbox, and other panel features remain unavailable until their integration milestones pass.</p>
+  <p>Configure a sending account to use the send-only API. Inbox/IMAP synchronization is not available yet.</p>
+  <p><a href="/accounts">Manage sending accounts</a></p>
   <form method="post" action="/logout">
     <input type="hidden" name="_csrf" value="{{ logout_csrf }}">
     <button type="submit">Sign out</button>
