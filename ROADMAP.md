@@ -47,7 +47,7 @@ Status: in_progress. Dependencies: None. PHP 8.4.27, Composer, disposable MariaD
 
 ### Milestone 1 — Foundation and installation
 
-Status: complete. Dependencies: 0. Locally verified on 2026-10-23: dependencies installed and locked, preflight passed, migrations 001/002/003/006/007/008 applied and repeat runs idempotent, private paths passed a real write probe, foundation/migration/bootstrap/unit checks passed, and the bounded worker ran. Production cPanel installation and real provider checks remain under Milestones 0 and 13.
+Status: complete. Dependencies: 0. Locally verified on 2026-10-23: dependencies installed and locked, `composer validate --strict` and `composer audit` passed, preflight passed, migrations 001/002/003/006/007/008 applied on a fresh disposable schema and repeat runs were idempotent, private paths passed a real write probe, foundation/migration/bootstrap/unit checks passed, and the bounded worker ran. Production cPanel installation and real provider checks remain under Milestones 0 and 13.
 
 **Work:** Set up routing, templates, services, validated configuration, private storage, structured logs, request IDs, explicit migrations, and CLI commands. Add database jobs with leases, interrupted-job recovery, bounded processing, and separate outbound/sync scheduling.
 
@@ -57,7 +57,7 @@ Status: complete. Dependencies: 0. Locally verified on 2026-10-23: dependencies 
 
 ### Milestone 2 — Independent administrator access
 
-Status: complete. Dependencies: 1. Locally verified on 2026-10-23: unit 16, database 28, Slim HTTP 35, and real-HTTPS 59 assertions passed; login/logout/CSRF/password change/expiry/throttling and CLI recovery behaved securely. Production reverse-proxy behavior, throttle races, bounded cleanup, and backup/restore remain operational/release checks.
+Status: complete. Dependencies: 1. Locally verified on 2026-10-23, including a fresh-schema run: unit 16, database 28, Slim HTTP 35, and real-HTTPS 58 assertions passed; login/logout/CSRF/password change/expiry/throttling and CLI recovery behaved securely (security version 1 to 2; active sessions 1 to 0). Production reverse-proxy behavior, throttle races, bounded cleanup, and backup/restore remain operational/release checks.
 
 **Work:** Create the administrator through CLI. Implement password hashing, login/logout/password change, session regeneration and expiry, Secure/HttpOnly/SameSite cookies, CSRF, throttling, safe audit events, and CLI recovery.
 

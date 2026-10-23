@@ -89,7 +89,7 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Preflight | 13 OK lines, including PHP 8.4.27, all required extensions, writable private storage/logs, readable CA bundle, and database query |
 | Public TLS trust | PHP OpenSSL with `verify_peer`/`verify_peer_name` fetched `https://packagist.org/packages.json` over the public CA chain (HTTP 200) |
 | Migrations | 001/002/003/006/007/008 applied; 004/005 empty and skipped; repeat `up` reported no pending work; status all APPLIED |
-| Foundation | 22 assertions |
+| Foundation | 26 assertions |
 | Unit auth | 16 assertions |
 | Unit core | 43 checks |
 | Unit jobs | 8 checks |
@@ -100,7 +100,7 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Migration locking | 8 assertions |
 | Authentication database | 28 assertions |
 | Authentication HTTP | 35 assertions, including the full account lifecycle (create, edit, disable, delete) and CSRF rejection |
-| Authentication HTTPS | 59 assertions, including the authenticated account list/form |
+| Authentication HTTPS | 58 assertions on the fresh empty-account schema (59 when the optional imported-account-label assertion is enabled) |
 | Bootstrap/runtime | 37 assertions; 15 routes; 20 Twig templates |
 | Jobs/submissions database | 7 checks, 0 failures |
 | Send API database | 6 checks, 0 failures |
@@ -108,12 +108,24 @@ All of the following completed with exit code 0 after the fixes recorded in `han
 | Controlled SMTP worker | 34 assertions; accepted, RCPT 550/451, partial acceptance, DATA 550/451, final-DATA disconnect, interrupted lease, persistence failure after acceptance, and three-failure account pause |
 | Account storage and Proton SMTP | Encrypted DB account imported; `mail:test-account` authenticated to `smtp.protonmail.ch:587` without sending DATA |
 | IMAP/POP3 probes | Input validation, TLS connection, correct-credential acceptance, and wrong-password rejection passed against a disposable local TLS mock; real Private Email login awaits the mailbox password; synchronization is not implemented |
-| CLI recovery | exit 0; security version 5 to 6; audit event written; login over HTTPS passed afterwards |
+| CLI recovery | Fresh task-01 schema: security version 1 to 2; active sessions 1 to 0; reset audit event written; old session rejected; HTTPS login with the reset password passed |
 
 A PHP lint pass reported `Linted 143 PHP files; failures: 0`. The dependency lock was regenerated, validated, and installed; `composer install --dry-run` reported nothing to install.
 
 The controlled worker fixture is `tests/Fixtures/smtp/worker-server.js`; start it on ports 4465–4471 with a disposable test certificate and SMTP test credentials before running `run-smtp-worker.php`. The test skips when the fixture or disposable database is unavailable.
 
-## Unverified behavior
+## Task 01 fresh-schema verification (2026-10-23)
+
+Task 01 used three new disposable schemas: `mailpanel_task01_app` (application, admin, migrations), `mailpanel_task01_auth` (auth database/HTTP runners), and `mailpanel_task01_migrations` (locking/failure/checksum). No production data was touched.
+
+- PHP CLI and CGI both report 8.4.27; HTTPS responses report `X-Powered-By: PHP/8.4.27`.
+- `composer validate --strict` passed after adding the `proprietary` license to `composer.json`; `composer audit` reported no advisories; `composer install --dry-run` reported nothing to install.
+- Fresh preflight: 13 OK. Migration status was PENDING for 001/002/003/006/007/008, `up` applied all six, status was APPLIED, and a repeat `up` reported no pending migrations.
+- Foundation 26, unit auth 16, auth database 28, Slim HTTP 35, real HTTPS 58, bootstrap 37 (15 routes, 20 templates), and migration locking/failure/checksum 8 assertions passed.
+- CLI reset: security version 1 to 2, active sessions 1 to 0, one `administrator_password_reset` audit event, the pre-reset session was rejected, and the HTTPS test logged in with the reset password.
+- Bounded worker executed with `--queue=outbound --budget=1` (exit 0, `budget_exhausted`); actual one-minute host cron remains unavailable on Windows and must be verified on cPanel.
+- HTTPS private-file request returned 404; `application.log` remained valid JSON (18 lines) and contained neither synthetic password nor a Bearer token pattern.
+
+
 
 This Windows host does not provide cPanel, a real mailbox, real IMAP 993 login, a production reverse proxy, or production cron. Still unverified: cPanel/cron timing, forwarded-proxy behavior, real provider TLS/limits and outbound delivery, real IMAP/POP3 authentication and IMAP/UIDVALIDITY synchronization, throttle races under concurrency, OpenAPI response-by-response validation, bounded retention cleanup, backup/restore, accessibility, and production deployment. Keep outbound and the public API disabled until their acceptance checks pass.

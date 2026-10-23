@@ -27,7 +27,7 @@ New required secrets: `MAILPANEL_AUTH_CSRF_KEY` and `MAILPANEL_AUTH_THROTTLE_KEY
 
 ## Verification and limitations
 
-Added `tests/Unit/run-auth.php`, `tests/Integration/run-auth.php`, `tests/Integration/run-auth-http.php`, and `tests/Integration/run-auth-https.php`; exact commands are in `docs/authentication.md` and `docs/testing.md`. On 2026-10-23 the unit, disposable-database, Slim HTTP, and real-HTTPS checks passed with 16, 28, 35, and 59 assertions respectively. The bootstrap runner (37 assertions) also verified PDO, logging, Twig, routes, and the authenticated account list/form. CLI recovery was exercised with the real command: exit 0, security version 5 to 6, `administrator_password_reset` audit event, sessions revoked, and a subsequent HTTPS login succeeded.
+Added `tests/Unit/run-auth.php`, `tests/Integration/run-auth.php`, `tests/Integration/run-auth-http.php`, and `tests/Integration/run-auth-https.php`; exact commands are in `docs/authentication.md` and `docs/testing.md`. On 2026-10-23 the unit, disposable-database, Slim HTTP, and real-HTTPS checks passed with 16, 28, 35, and 58 assertions respectively on fresh task-01 schemas (59 HTTPS assertions when the optional imported-account label is enabled). The bootstrap runner (37 assertions) also verified PDO, logging, Twig, routes, and the authenticated account list/form. CLI recovery was exercised with the real command: exit 0, security version 1 to 2 on the fresh schema, `administrator_password_reset` audit event, active sessions 1 to 0, old session rejected, and a subsequent HTTPS login with the reset password succeeded.
 
 Runtime verification found and fixed three defects: repeated named PDO placeholders in `AdministratorRepository` and `LoginThrottleRepository` (native prepares reject duplicates), a test-scope collision where `bootstrap/web.php` overwrote the HTTP runner's CSRF helper, and a false-negative directory check caused by Windows ACL behavior (`DirectoryProbe` now performs a real write probe; the same probe is used by the logger and preflight). The authentication module itself needed no schema changes.
 
@@ -35,6 +35,6 @@ Still unverified: production cPanel/reverse-proxy behavior, forwarded-header pol
 
 ## Exact next step
 
-Milestone 2 is locally verified. Keep the API and outbound workers disabled, complete Milestone 0's remaining cPanel/IMAP feasibility checks, and integrate Milestone 3 account routes behind this authentication and action-specific CSRF. Schedule bounded session/throttle cleanup with Milestone 12. Before any production exposure, repeat the HTTPS checks through the real cPanel reverse proxy and confirm the actual `REMOTE_ADDR` boundary.
+Milestone 2 is locally verified. The sending-account panel now reuses this authentication and action-specific CSRF boundary. Keep the API and outbound workers disabled, complete Milestone 0's remaining cPanel/IMAP feasibility checks, and repeat HTTPS checks through the real cPanel reverse proxy with the actual `REMOTE_ADDR` boundary. Schedule bounded session/throttle cleanup with Milestone 12.
 
 **Read and update handover.md before handing over, and require the next contributor to do the same.**

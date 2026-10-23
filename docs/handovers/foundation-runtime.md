@@ -19,7 +19,7 @@ The DeepSeek authentication result was deferred because Milestone 2 depends on t
 - `PdoFactory::create()` enables exceptions, native prepared statements, strict SQL mode, and UTC sessions.
 - `MigrationRunner::up()` applies ordered nonempty PHP migrations, records SHA-256 checksums after success, rejects edits/missing applied files, and serializes runners with `GET_LOCK`. It never runs from an HTTP route.
 - `php bin/console.php migrate status|up` and `php bin/console.php preflight` are real CLI entry points. Exit 64 is command misuse, 78 is invalid configuration, 3 is preflight database failure, and 1 is another runtime failure.
-- `public/index.php` boots Slim and returns a generic 503 if startup fails. The registered surface is the six Milestone 2 panel routes plus `POST /api/v1/mail/send` behind `ApiKeyMiddleware`; unmatched requests are 404.
+- `public/index.php` boots Slim and returns a generic 503 if startup fails. The registered surface is the six Milestone 2 panel routes, eight authenticated sending-account routes, and `POST /api/v1/mail/send` behind `ApiKeyMiddleware`; unmatched requests are 404.
 - Internal request IDs are random and are returned as `X-Request-ID`; inbound values are not trusted.
 - `DirectoryProbe` proves private-directory writability with a real create/write/delete probe because `is_writable()` can report false on Windows with a narrow deny ACE; preflight and the logger use it.
 
@@ -52,9 +52,9 @@ php tests/Integration/run-migrations.php
 php tests/Integration/run-bootstrap.php
 ```
 
-The foundation runner checks encoded cipher key compatibility, decoded fingerprint keys, inherited queue/API defaults, redaction, missing configuration, production debug rejection, short keys, public storage rejection, and the writable-directory probe. The migration runner requires a disposable schema plus `MAILPANEL_TEST_DB_DSN`, `MAILPANEL_TEST_DB_USER`, `MAILPANEL_TEST_DB_PASSWORD`, and `MAILPANEL_TEST_ALLOW_RESET=1`; it destructively resets only its probe tables and the migration ledger, then checks overlap locking, apply-once behavior, checksums, and failed-ledger behavior. The bootstrap runner verifies configuration, PDO, private paths, JSON logging/redaction, compilation of all 20 Twig templates, the 7-route table, security headers/request IDs, anonymous redirect, and login rendering.
+The foundation runner checks encoded cipher key compatibility, decoded fingerprint keys, inherited queue/API defaults, redaction, missing configuration, production debug rejection, short keys, public storage rejection, and the writable-directory probe. The migration runner requires a disposable schema plus `MAILPANEL_TEST_DB_DSN`, `MAILPANEL_TEST_DB_USER`, `MAILPANEL_TEST_DB_PASSWORD`, and `MAILPANEL_TEST_ALLOW_RESET=1`; it destructively resets only its probe tables and the migration ledger, then checks overlap locking, apply-once behavior, checksums, and failed-ledger behavior. The bootstrap runner verifies configuration, PDO, private paths, JSON logging/redaction, compilation of all 20 Twig templates, the 15-route table, security headers/request IDs, anonymous redirect, and login rendering.
 
-Local results on 2026-10-23: foundation 26 assertions; migration locking 8 assertions; bootstrap 37 assertions (15 routes, 20 templates); PHP lint 142 files with 0 failures. PHP 8.4.27, Composer 2.10.3, and MariaDB 11.4.5 were provisioned under a disposable `.tools/` toolchain that is gitignored. The earlier `php-parser` static result is superseded by these runtime checks but remains historical context in prior handovers.
+Local results on 2026-10-23: foundation 26 assertions; migration locking 8 assertions; bootstrap 37 assertions (15 routes, 20 templates); PHP lint 143 files with 0 failures. A fresh task-01 schema reproduced pending → applied → no-pending migrations. PHP 8.4.27, Composer 2.10.3, and MariaDB 11.4.5 were provisioned under a disposable `.tools/` toolchain that is gitignored. The earlier `php-parser` static result is superseded by these runtime checks but remains historical context in prior handovers.
 
 Still unverified: cPanel document-root/proxy behavior, real cron timing, real IMAP/SMTP providers, concurrency races outside the migration lock, bounded cleanup, and backup/restore.
 
@@ -66,6 +66,6 @@ Back up the database, private files, and encryption-key material together but st
 
 ## Integration requests and exact next step
 
-Milestone 2 is locally verified. Keep the API and outbound workers disabled, complete Milestone 0's remaining cPanel/IMAP feasibility checks, then integrate Milestone 3 account routes behind the administrator authentication and action-specific CSRF. Implement bounded session/throttle cleanup with Milestone 12. Do not expose any read/status/contact/task/OTP API.
+Milestone 2 and the sending-account panel are locally verified. Keep the API and outbound workers disabled, complete Milestone 0's remaining cPanel/IMAP feasibility checks, and repeat HTTPS/database checks through the real hosting environment. Implement bounded session/throttle cleanup with Milestone 12. Do not expose any read/status/contact/task/OTP API.
 
 **Read and update handover.md before handing over, and require the next contributor to do the same.**

@@ -2,6 +2,7 @@
   "name": "havisen/mail-project",
   "description": "Private PHP mail panel",
   "type": "project",
+  "license": "proprietary",
   "require": {
     "php": "^8.4",
     "ext-json": "*",

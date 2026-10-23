@@ -9,7 +9,7 @@ next contributor, who must follow the same rule.
 
 # Security Introduction
 
-This scaffold is not deployable as a verified secured application. The foundation validates startup secrets and private paths, creates private redacted JSON logs, uses native PDO prepares/strict SQL mode, returns internal request IDs, and fails HTTP startup without details. Milestone 2 now implements the administrator login/session/CSRF boundary and protected authentication routes, but PHP/database/HTTPS acceptance and dependency locking are still absent. Other feature routes remain unwired and must not be treated as protected until explicitly registered behind the middleware.
+This scaffold is not deployable as a verified secured application. The foundation validates startup secrets and private paths, creates private redacted JSON logs, uses native PDO prepares/strict SQL mode, returns internal request IDs, and fails HTTP startup without details. Milestone 2 is locally verified on a disposable host, including real-HTTPS Secure cookies and CLI recovery. Account, submit, worker, and API routes are registered only behind their documented authentication/API-key boundaries, but production cPanel/proxy and real-provider acceptance are still missing.
 
 The request-ID middleware intentionally ignores caller-supplied IDs. Logging redacts keys whose names imply authorization, passwords, secrets, tokens, fingerprints, bodies, or content and removes Bearer values from strings. Code must still avoid logging request payloads, private messages, recipient lists, credentials, API/idempotency keys, or raw SMTP/IMAP transcripts. Only `public/` may be web-accessible, and migration/preflight operations are CLI-only.
 
@@ -30,7 +30,7 @@ Do not automatically append API authentication emails to Sent by default. A prov
 - Authentication/private HTML is `no-store`. Global headers provide restrictive CSP, frame denial, no-referrer, no-sniff, permissions restrictions, and HSTS. The dashboard is intentionally minimal.
 - Audit events use a fixed allow-list and safe identifiers only. Redaction now treats generic `_key` configuration fields as secrets. Passwords, raw tokens, private request bodies, and authorization values are never audit data.
 
-Threats still requiring operational evidence include Secure-cookie behavior through the real HTTPS proxy, concurrent throttle races, browser tests, session/throttle cleanup, dependency supply-chain review, backup/restore, and web-server denial of non-public files. Do not disable Secure cookies, CSRF, TLS validation, or throttling to bypass a failed setup.
+Threats still requiring operational evidence include Secure-cookie behavior through the real cPanel HTTPS proxy, concurrent throttle races, browser/accessibility testing, session/throttle cleanup, dependency supply-chain review beyond the local audit, backup/restore, and web-server denial of non-public files on cPanel. Do not disable Secure cookies, CSRF, TLS validation, or throttling to bypass a failed setup.
 
 ## Implemented in the SMTP account core
 
@@ -39,7 +39,7 @@ Threats still requiring operational evidence include Secure-cookie behavior thro
 - `AccountRepository` omits encrypted credentials from panel reads and uses prepared statements.
 - `SmtpConnectionTester` exposes only fixed safe error categories through a transport adapter contract and never sends message DATA.
 
-These controls have not been runtime-tested on this machine. The real SMTP adapter must preserve certificate verification and must not log provider responses containing sensitive details. See `docs/accounts.md` and `docs/handovers/05-smtp-sending-accounts.md`.
+These controls have local runtime evidence through the authenticated account panel, real Proton SMTP authentication, and controlled TLS worker fixtures. Real-provider/cPanel behavior remains unverified; the adapter never logs provider responses containing sensitive details. See `docs/accounts.md` and `docs/handovers/05-smtp-sending-accounts.md`.
 
 ## Implemented in outgoing persistence
 
@@ -53,4 +53,4 @@ The PHPMailer adapter forces verified peer/hostname TLS, rejects self-signed cer
 
 API credentials use random 256-bit secret material plus a collision-resistant nonsecret prefix. Only Argon2id hashes are stored. Authentication performs a dummy hash verification for unknown prefixes, accepts only one Bearer header, rejects token-like query parameters, and yields an explicit `mail:send`/account principal. Revocation takes effect before replay authorization. Replacement supports an administrator-controlled overlap; it does not silently revoke the old key or cancel queued submissions. Safe audit events contain lifecycle type and key reference only. Shared administrator authentication/CSRF still must protect the settings actions before the template is routable.
 
-The send API HMACs both the endpoint/idempotency identifier and canonical payload with a distinct server-held fingerprint key, reducing offline guessing of low-entropy caller identifiers or authentication-message content. Account scope is checked before replay lookup. Responses omit Bcc, bodies, Message-ID, provider errors, and status URLs; controller responses use `Cache-Control: no-store`. Strict media type/size/field rules and IDNA normalization precede persistence. No CORS headers are emitted. The route remains unwired, so these controls are not yet end-to-end verified.
+The send API HMACs both the endpoint/idempotency identifier and canonical payload with a distinct server-held fingerprint key, reducing offline guessing of low-entropy caller identifiers or authentication-message content. Account scope is checked before replay lookup. Responses omit Bcc, bodies, Message-ID, provider errors, and status URLs; controller responses use `Cache-Control: no-store`. Strict media type/size/field rules and IDNA normalization precede persistence. No CORS headers are emitted. The route is registered behind `ApiKeyMiddleware`, but real API-key HTTP, OpenAPI, and two-connection concurrency evidence remain required.
