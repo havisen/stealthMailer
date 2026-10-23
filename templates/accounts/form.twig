@@ -1,0 +1,112 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <h1>{% if is_edit %}Edit sending account{% else %}New sending account{% endif %}</h1>
+
+  <form method="post" action="{{ form_action }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+    <p>
+      <label for="label">Label</label><br>
+      <input id="label" type="text" name="label" maxlength="120" value="{{ account.label }}" required autocomplete="off">
+    </p>
+
+    <fieldset>
+      <legend>SMTP endpoint</legend>
+      <p>Only operator-approved SMTP endpoints are accepted. Certificate verification is always required.</p>
+      <p>
+        <label for="smtp_host">SMTP host</label><br>
+        <input id="smtp_host" type="text" name="smtp_host" maxlength="253" value="{{ account.smtp_host }}" required autocomplete="off">
+      </p>
+      <p>
+        <label for="smtp_port">SMTP port</label><br>
+        <select id="smtp_port" name="smtp_port" required>
+          <option value="465"{% if account.smtp_port == 465 %} selected{% endif %}>465 (implicit TLS)</option>
+          <option value="587"{% if account.smtp_port != 465 %} selected{% endif %}>587 (STARTTLS)</option>
+        </select>
+      </p>
+      <p>
+        <label for="smtp_username">SMTP username</label><br>
+        <input id="smtp_username" type="text" name="smtp_username" maxlength="255" value="{{ account.smtp_username }}" required autocomplete="username">
+      </p>
+      <p>
+        <label for="password">SMTP password</label><br>
+        <input id="password" type="password" name="password" maxlength="1024" autocomplete="new-password"{% if not is_edit %} required{% endif %}>
+        {% if is_edit %}<br><small>Leave blank to keep the stored password.</small>{% endif %}
+      </p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sender identity</legend>
+      <p>
+        <label for="from_email">From address</label><br>
+        <input id="from_email" type="email" name="from_email" maxlength="254" value="{{ account.from_email }}" required autocomplete="email">
+      </p>
+      <p>
+        <label for="from_name">From name</label><br>
+        <input id="from_name" type="text" name="from_name" maxlength="120" value="{{ account.from_name }}" autocomplete="off">
+      </p>
+      <p>
+        <label for="reply_to_email">Reply-To address</label><br>
+        <input id="reply_to_email" type="email" name="reply_to_email" maxlength="254" value="{{ account.reply_to_email }}" autocomplete="off">
+        <br><small>Optional. Leave blank to use the From address.</small>
+      </p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Status</legend>
+      <input type="hidden" name="enabled" value="0">
+      <label>
+        <input type="checkbox" name="enabled" value="1"{% if account.enabled %} checked{% endif %}>
+        Enabled
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Limits</legend>
+      <p>
+        <label for="max_recipients">Maximum recipients per message</label><br>
+        <input id="max_recipients" type="number" name="max_recipients" min="1" max="10" value="{{ account.max_recipients }}" required>
+      </p>
+      <p>
+        <label for="max_hourly_recipients">Maximum recipients per hour</label><br>
+        <input id="max_hourly_recipients" type="number" name="max_hourly_recipients" min="1" max="100000" value="{{ account.max_hourly_recipients }}" required>
+      </p>
+      <p>
+        <label for="max_outbound_bytes">Maximum outbound size (bytes)</label><br>
+        <input id="max_outbound_bytes" type="number" name="max_outbound_bytes" min="1024" max="104857600" value="{{ account.max_outbound_bytes }}" required>
+        <br><small>Between 1 KiB and 100 MiB.</small>
+      </p>
+    </fieldset>
+
+    <button type="submit">{% if is_edit %}Save changes{% else %}Create account{% endif %}</button>
+  </form>
+
+  {% if is_edit %}
+    <section>
+      <h2>Connection test</h2>
+      <p>The test connects and authenticates with the stored credentials. It does not send a message and works while the account is paused.</p>
+      <form method="post" action="/accounts/{{ account.public_id }}/test">
+        <input type="hidden" name="_csrf" value="{{ test_csrf }}">
+        <button type="submit">Test connection</button>
+      </form>
+
+      <dl>
+        {% if account.password_changed_at %}
+          <dt>Password last changed</dt><dd>{{ account.password_changed_at }}</dd>
+        {% endif %}
+        {% if account.created_at %}
+          <dt>Created</dt><dd>{{ account.created_at }}</dd>
+        {% endif %}
+        {% if account.updated_at %}
+          <dt>Updated</dt><dd>{{ account.updated_at }}</dd>
+        {% endif %}
+        {% if account.pause_reason %}
+          <dt>Pause reason</dt><dd>{{ account.pause_reason }}</dd>
+        {% endif %}
+      </dl>
+    </section>
+  {% endif %}
+
+  <p><a href="/accounts">Back to sending accounts</a></p>
+{% endblock %}

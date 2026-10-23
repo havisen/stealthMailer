@@ -1,0 +1,196 @@
+{% extends "layout.twig" %}
+
+{% set state_notes = {
+  queued: 'The submission is waiting for the sender worker. It has not been sent yet. A queued submission can still be canceled.',
+  sending: 'An SMTP attempt is in progress. SMTP acceptance is not yet known, and cancellation can no longer be guaranteed.',
+  accepted: 'The outgoing server accepted the message for every recipient. SMTP acceptance is not proof of delivery to an inbox.',
+  partially_accepted: 'The outgoing server accepted the message for some recipients and rejected or failed the others. The accepted recipients are not resent.',
+  failed: 'The outgoing server did not accept the message for any recipient. This is not proof that no message left the server in every failure case.',
+  uncertain: 'The outcome of the sending attempt is unknown. The message may or may not have been accepted, and it is never resent automatically.',
+  expired: 'The submission expired before an SMTP attempt started, so it was not sent.',
+  canceled: 'The submission was canceled while it was still queued, so it was not sent.'
+} %}
+
+{% set outcome_labels = {
+  accepted: 'SMTP accepted',
+  rejected: 'Rejected',
+  transient_failure: 'Temporary failure',
+  unknown: 'Unknown'
+} %}
+
+{% macro format_recipient(recipient) %}
+  {%- if recipient is iterable -%}
+    {%- if recipient.name is defined and recipient.name %}{{ recipient.name }} {% endif -%}
+    &lt;{{ recipient.email|default('') }}&gt;
+  {%- else -%}
+    {{- recipient -}}
+  {%- endif -%}
+{% endmacro %}
+
+{% import _self as detail %}
+
+{% block content %}
+  <h1>Submission {{ submission.id }}</h1>
+
+  <p>
+    <strong>State:</strong>
+    {% if submission.state == 'accepted' %}
+      SMTP accepted
+    {% elseif submission.state == 'partially_accepted' %}
+      Partially accepted
+    {% elseif submission.state == 'canceled' %}
+      Canceled
+    {% elseif submission.state == 'expired' %}
+      Expired
+    {% elseif submission.state == 'uncertain' %}
+      Uncertain
+    {% elseif submission.state == 'failed' %}
+      Failed
+    {% elseif submission.state == 'sending' %}
+      Sending
+    {% elseif submission.state == 'queued' %}
+      Queued
+    {% else %}
+      {{ submission.state|default('Unknown') }}
+    {% endif %}
+  </p>
+  <p>{{ state_notes[submission.state]|default('No description is available for this state.') }}</p>
+  <p>
+    &ldquo;SMTP accepted&rdquo; is not &ldquo;delivered&rdquo;. This panel shows the outgoing server&rsquo;s
+    acceptance result only and cannot confirm inbox delivery.
+  </p>
+
+  <dl>
+    <dt>Account</dt>
+    <dd>{% if submission.account_reference %}{{ submission.account_reference }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Source</dt>
+    <dd>{% if submission.source %}{{ submission.source }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Sender</dt>
+    <dd>
+      {% if submission.from %}
+        {% if submission.from.name is defined and submission.from.name %}{{ submission.from.name }} {% endif %}
+        &lt;{{ submission.from.email|default('') }}&gt;
+      {% else %}
+        &mdash;
+      {% endif %}
+    </dd>
+
+    <dt>Reply-To</dt>
+    <dd>
+      {% if submission.reply_to %}
+        {{ detail.format_recipient(submission.reply_to) }}
+      {% else %}
+        &mdash;
+      {% endif %}
+    </dd>
+
+    <dt>Subject</dt>
+    <dd>{% if submission.subject %}{{ submission.subject }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Message-ID</dt>
+    <dd>{% if submission.message_id %}{{ submission.message_id }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Attempts</dt>
+    <dd>{{ submission.attempts }}</dd>
+
+    <dt>Failure category</dt>
+    <dd>{% if submission.last_error_category %}{{ submission.last_error_category }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Sent copy state</dt>
+    <dd>{% if submission.sent_copy_state %}{{ submission.sent_copy_state }}{% else %}&mdash;{% endif %}</dd>
+
+    <dt>Created (UTC)</dt>
+    <dd>{{ submission.created_at|default('—') }}</dd>
+
+    <dt>Updated (UTC)</dt>
+    <dd>{{ submission.updated_at|default('—') }}</dd>
+
+    <dt>Deadline (UTC)</dt>
+    <dd>{{ submission.deadline_at|default('—') }}</dd>
+
+    <dt>Sending started (UTC)</dt>
+    <dd>{{ submission.sending_started_at|default('—') }}</dd>
+
+    <dt>Terminal at (UTC)</dt>
+    <dd>{{ submission.terminal_at|default('—') }}</dd>
+  </dl>
+
+  <h2>Recipients</h2>
+  <h3>To</h3>
+  {% if submission.to is empty %}
+    <p>&mdash;</p>
+  {% else %}
+    <ul>
+      {% for recipient in submission.to %}
+        <li>{{ detail.format_recipient(recipient) }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h3>Cc</h3>
+  {% if submission.cc is empty %}
+    <p>&mdash;</p>
+  {% else %}
+    <ul>
+      {% for recipient in submission.cc %}
+        <li>{{ detail.format_recipient(recipient) }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h3>Bcc</h3>
+  {% if submission.bcc is empty %}
+    <p>&mdash;</p>
+  {% else %}
+    <ul>
+      {% for recipient in submission.bcc %}
+        <li>{{ detail.format_recipient(recipient) }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <h2>Recipient outcomes</h2>
+  {% if recipient_outcomes is empty %}
+    <p>No recipient outcomes have been recorded.</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Attempt</th>
+          <th scope="col">Recipient</th>
+          <th scope="col">Outcome</th>
+          <th scope="col">Failure category</th>
+          <th scope="col">Recorded (UTC)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for outcome in recipient_outcomes %}
+          <tr>
+            <td>{{ outcome.attempt_number }}</td>
+            <td>
+              {% if outcome.recipient_type %}{{ outcome.recipient_type|capitalize }} recipient{% else %}Recipient{% endif %}
+              {{ outcome.ordinal }}
+              {% if outcome.address %}&mdash; {{ outcome.address }}{% endif %}
+            </td>
+            <td>{{ outcome_labels[outcome.outcome]|default(outcome.outcome ?: 'Unknown') }}</td>
+            <td>{% if outcome.failure_category %}{{ outcome.failure_category }}{% else %}&mdash;{% endif %}</td>
+            <td>{{ outcome.recorded_at|default('—') }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if submission.state == 'queued' %}
+    <h2>Cancel</h2>
+    <p>Canceling is only possible while the submission is still queued. Once sending starts, cancellation cannot be guaranteed.</p>
+    <form method="post" action="/outbox/{{ submission.id|url_encode }}/cancel">
+      <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+      <button type="submit">Cancel queued submission</button>
+    </form>
+  {% endif %}
+
+  <p><a href="/outbox">Back to Outbox</a></p>
+{% endblock %}

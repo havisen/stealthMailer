@@ -1,0 +1,92 @@
+{% extends "layout.twig" %}
+
+{% set state_labels = {
+  queued: 'Queued',
+  sending: 'Sending',
+  accepted: 'SMTP accepted',
+  partially_accepted: 'Partially accepted',
+  failed: 'Failed',
+  uncertain: 'Uncertain',
+  expired: 'Expired',
+  canceled: 'Canceled'
+} %}
+
+{% block content %}
+  <h1>Outbox</h1>
+
+  <p>
+    &ldquo;SMTP accepted&rdquo; means the outgoing server accepted the message for those recipients.
+    It is not proof of delivery to an inbox.
+  </p>
+
+  <form method="get" action="/outbox">
+    <label for="state">Filter by state</label>
+    <select id="state" name="state">
+      <option value="">All states</option>
+      {% for option in states %}
+        <option value="{{ option }}"{% if state == option %} selected{% endif %}>
+          {{ state_labels[option]|default(option) }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  {% if items is empty %}
+    <p role="status">
+      {% if state %}
+        No submissions with the state &ldquo;{{ state_labels[state]|default(state) }}&rdquo;.
+      {% else %}
+        No submissions have been queued yet.
+      {% endif %}
+    </p>
+  {% else %}
+    <table>
+      <caption>{{ total }} submission{{ total == 1 ? '' : 's' }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">Created (UTC)</th>
+          <th scope="col">Account</th>
+          <th scope="col">Recipients</th>
+          <th scope="col">Source</th>
+          <th scope="col">State</th>
+          <th scope="col">Attempts</th>
+          <th scope="col">Failure category</th>
+          <th scope="col">Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td>
+              {% if item.created_at %}
+                <time datetime="{{ item.created_at }}">{{ item.created_at }}</time>
+              {% else %}
+                &mdash;
+              {% endif %}
+            </td>
+            <td>{% if item.account %}{{ item.account }}{% else %}&mdash;{% endif %}</td>
+            <td>{% if item.recipient_summary %}{{ item.recipient_summary }}{% else %}Not available{% endif %}</td>
+            <td>{% if item.source %}{{ item.source }}{% else %}&mdash;{% endif %}</td>
+            <td>{% if item.state %}{{ state_labels[item.state]|default(item.state) }}{% else %}Unknown{% endif %}</td>
+            <td>{{ item.attempts }}</td>
+            <td>{% if item.failure_category %}{{ item.failure_category }}{% else %}&mdash;{% endif %}</td>
+            <td><a href="/outbox/{{ item.id|url_encode }}">View</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <nav aria-label="Outbox pages">
+    <p>Page {{ page }} of {{ page_count }}</p>
+    {% if page > 1 %}
+      <a href="/outbox?page={{ page - 1 }}{% if state %}&amp;state={{ state|url_encode }}{% endif %}">Previous</a>
+    {% endif %}
+    {% if page < page_count %}
+      <a href="/outbox?page={{ page + 1 }}{% if state %}&amp;state={{ state|url_encode }}{% endif %}">Next</a>
+    {% endif %}
+  </nav>
+
+  <p><a href="/compose">Compose a message</a></p>
+{% endblock %}

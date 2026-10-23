@@ -1,0 +1,118 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <h1>Diagnostics</h1>
+  <p>Snapshot generated at {{ generated_at }}. This page shows operational state only; it does not include passwords, credentials, connection transcripts, or API secrets.</p>
+  <p><a href="/settings/diagnostics?refreshed=1">Refresh diagnostics</a></p>
+
+  {% if stale_warning %}
+    <p role="alert">{{ stale_warning }}</p>
+  {% else %}
+    <p role="status">Worker heartbeat is current. A heartbeat older than 5 minutes is considered stale.</p>
+  {% endif %}
+
+  <section aria-labelledby="worker-heading">
+    <h2 id="worker-heading">Worker</h2>
+    <dl>
+      <dt>Last heartbeat</dt>
+      <dd>
+        {% if worker.last_heartbeat_at %}
+          {{ worker.last_heartbeat_at }} UTC{% if heartbeat_age %} ({{ heartbeat_age }}){% endif %}
+        {% else %}
+          No heartbeat recorded
+        {% endif %}
+      </dd>
+      <dt>Last finished run</dt>
+      <dd>{% if worker.last_finished_at %}{{ worker.last_finished_at }} UTC{% else %}No completed worker run recorded{% endif %}</dd>
+      <dt>Last exit reason</dt>
+      <dd>{% if worker.last_exit_reason %}{{ worker.last_exit_reason }}{% else %}Not reported{% endif %}</dd>
+      <dt>Heartbeat status</dt>
+      <dd>{% if worker.stale %}Stale{% else %}Current{% endif %}</dd>
+    </dl>
+    <p>A stale heartbeat means scheduled work may not be running. Check the server cron entry and the worker command. A single late run can also make the heartbeat stale.</p>
+  </section>
+
+  <section aria-labelledby="queues-heading">
+    <h2 id="queues-heading">Queues</h2>
+    <table>
+      <caption>Queued and leased jobs by queue. Queued does not mean sent.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Queue</th>
+          <th scope="col">Queued</th>
+          <th scope="col">Leased</th>
+          <th scope="col">Oldest queued item</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, queue in queues %}
+          <tr>
+            <th scope="row">{{ name|capitalize }}</th>
+            <td>{{ queue.queued }}</td>
+            <td>{{ queue.leased }}</td>
+            <td>{% if queue.oldest_queued_at %}{{ queue.oldest_queued_at }} UTC{% else %}None waiting{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>Queued jobs are waiting for a worker. Leased jobs are currently held by a worker, or their lease has not yet expired. Neither state means a message was sent.</p>
+  </section>
+
+  <section aria-labelledby="health-heading">
+    <h2 id="health-heading">Leases and failures</h2>
+    <dl>
+      <dt>Expired leases</dt>
+      <dd>{{ expired_leases }}</dd>
+      <dt>Failed jobs in the last 24 hours</dt>
+      <dd>{{ failed_jobs_24h }}</dd>
+    </dl>
+    <p>Expired leases are jobs whose worker did not renew its claim; a later worker run may recover them. Failed jobs count recorded job attempts across all queues, not unique messages.</p>
+  </section>
+
+  <section aria-labelledby="accounts-heading">
+    <h2 id="accounts-heading">Sending accounts</h2>
+    {% if accounts is empty %}
+      <p>No sending accounts are configured.</p>
+    {% else %}
+      <table>
+        <caption>Enabled and paused sending accounts. No credentials are shown.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Account</th>
+            <th scope="col">From address</th>
+            <th scope="col">State</th>
+            <th scope="col">Pause reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in accounts %}
+            <tr>
+              <th scope="row">{{ account.label }}</th>
+              <td>{{ account.from_email }}</td>
+              <td>{% if account.enabled %}Enabled{% else %}Paused{% endif %}</td>
+              <td>
+                {% if account.pause_reason %}
+                  {{ account.pause_reason }}
+                {% elseif account.enabled %}
+                  Not paused
+                {% else %}
+                  No reason recorded
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="terms-heading">
+    <h2 id="terms-heading">What these terms mean</h2>
+    <ul>
+      <li><strong>Queued</strong> means a job is waiting for a worker. It does not mean the message was sent.</li>
+      <li><strong>Leased</strong> means a worker claimed the job, or the claim has not yet expired.</li>
+      <li><strong>SMTP accepted</strong> means the sending server accepted the message for delivery. It does not prove that the recipient&rsquo;s server delivered it.</li>
+      <li><strong>Failed</strong> counts recorded job failures in the last 24 hours, including retries and jobs from every queue.</li>
+    </ul>
+  </section>
+{% endblock %}

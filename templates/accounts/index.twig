@@ -1,0 +1,65 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <h1>Sending accounts</h1>
+  <p><a href="/accounts/create">Add sending account</a></p>
+
+  {% if accounts is empty %}
+    <p>No sending accounts have been configured.</p>
+  {% else %}
+    {% for account in accounts %}
+      <article>
+        <h2>{{ account.label }}</h2>
+        <p>
+          <strong>{{ account.smtp_host }}:{{ account.smtp_port }}</strong>
+          {% if account.smtp_tls == 'implicit' %}(implicit TLS){% elseif account.smtp_tls == 'starttls' %}(STARTTLS){% endif %}
+        </p>
+        <p>
+          Sender:
+          {% if account.from_name %}{{ account.from_name }} &lt;{{ account.from_email }}&gt;{% else %}{{ account.from_email }}{% endif %}
+          {% if account.reply_to_email %} (reply-to {{ account.reply_to_email }}){% endif %}
+        </p>
+        <p>
+          Status:
+          {% if account.enabled %}
+            <strong>Enabled</strong>
+          {% else %}
+            <strong>Paused</strong>
+            {% if account.pause_reason %}&mdash; {{ account.pause_reason }}{% endif %}
+          {% endif %}
+        </p>
+        <ul>
+          <li>Up to {{ account.max_recipients }} recipients per message</li>
+          <li>Up to {{ account.max_hourly_recipients }} recipients per hour</li>
+          <li>Up to {{ account.max_outbound_bytes }} bytes per outbound message</li>
+        </ul>
+        <p>Created {{ account.created_at }}. Updated {{ account.updated_at }}.</p>
+
+        <p><a href="/accounts/{{ account.public_id }}/edit">Edit</a></p>
+
+        <form method="post" action="/accounts/{{ account.public_id }}/test">
+          <input type="hidden" name="_csrf" value="{{ test_csrf }}">
+          <button type="submit">Test connection</button>
+        </form>
+
+        {% if account.enabled %}
+          <form method="post" action="/accounts/{{ account.public_id }}/disable">
+            <input type="hidden" name="_csrf" value="{{ disable_csrf }}">
+            <button type="submit">Pause account</button>
+          </form>
+        {% endif %}
+
+        <form method="post" action="/accounts/{{ account.public_id }}/delete">
+          <input type="hidden" name="_csrf" value="{{ delete_csrf }}">
+          <label>
+            Type {{ account.label }} to confirm deletion
+            <input type="text" name="confirm" autocomplete="off" required>
+          </label>
+          <button type="submit">Delete account</button>
+        </form>
+      </article>
+    {% endfor %}
+  {% endif %}
+
+  <p><a href="/">Back to mail panel</a></p>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <h1>API keys</h1>
+  <p>API keys authorize the send-only API. Every key has the <code>mail:send</code> scope and may submit mail only through the sending accounts selected when the key is created. The secret is shown once, immediately after creation, and cannot be retrieved again.</p>
+
+  {% if issued_key %}
+    <section role="status" aria-live="polite" aria-labelledby="issued-key-heading">
+      <h2 id="issued-key-heading">New API key created</h2>
+      <p><strong>Copy this secret now.</strong> It is shown only once. If you lose it, revoke this key and create a replacement.</p>
+      <dl>
+        <dt>Label</dt>
+        <dd>{{ issued_key.label }}</dd>
+        <dt>Key ID</dt>
+        <dd><code>{{ issued_key.publicId }}</code></dd>
+        <dt>Created</dt>
+        <dd>{{ issued_key.createdAt }} UTC</dd>
+      </dl>
+      <p>Secret:</p>
+      <pre><code>{{ issued_key.secret }}</code></pre>
+      <p>Store the secret in a secret manager. Do not put it in email, URLs, screenshots, or browser storage.</p>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="create-key-heading">
+    <h2 id="create-key-heading">Create a key</h2>
+    {% if accounts is empty %}
+      <p>No sending accounts are configured. Add a sending account before creating an API key.</p>
+    {% else %}
+      <form method="post" action="/settings/api-keys">
+        <input type="hidden" name="_csrf" value="{{ csrf_create }}">
+        <p>
+          <label for="key-label">Label</label>
+          <input id="key-label" name="label" type="text" maxlength="120" value="{{ label }}" autocomplete="off" required>
+        </p>
+        <fieldset aria-describedby="account-selection-help">
+          <legend>Allowed sending accounts</legend>
+          <p id="account-selection-help">The key may submit mail only from the accounts selected here.</p>
+          {% for account in accounts %}
+            {% set account_id = account.public_id %}
+            <p>
+              <input id="account-{{ account_id }}" type="checkbox" name="account_ids[]" value="{{ account_id }}"{% if account_id in selected_account_ids %} checked{% endif %}>
+              <label for="account-{{ account_id }}">{{ account.label }}{% if account.from_email %} &lt;{{ account.from_email }}&gt;{% endif %}</label>
+            </p>
+          {% endfor %}
+        </fieldset>
+        <button type="submit">Create key</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="existing-keys-heading">
+    <h2 id="existing-keys-heading">Existing keys</h2>
+    {% if keys is empty %}
+      <p>No API keys have been created yet.</p>
+    {% else %}
+      <table>
+        <caption>API keys, scopes, and status</caption>
+        <thead>
+          <tr>
+            <th scope="col">Label</th>
+            <th scope="col">Prefix</th>
+            <th scope="col">Scope</th>
+            <th scope="col">Created</th>
+            <th scope="col">Last used</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key in keys %}
+            <tr>
+              <th scope="row">{{ key.label }}</th>
+              <td><code>{{ key.lookup_prefix }}&hellip;</code></td>
+              <td><code>{{ key.scope }}</code></td>
+              <td>{{ key.created_at }} UTC</td>
+              <td>{% if key.last_used_at %}{{ key.last_used_at }} UTC{% else %}Never used{% endif %}</td>
+              <td>
+                {% if key.revoked_at %}
+                  Revoked on {{ key.revoked_at }} UTC
+                {% else %}
+                  Active
+                  <form method="post" action="/settings/api-keys/{{ key.public_id }}/revoke">
+                    <input type="hidden" name="_csrf" value="{{ csrf_revoke }}">
+                    <button type="submit" aria-label="Revoke API key {{ key.label }}">Revoke</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </section>
+{% endblock %}

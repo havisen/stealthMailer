@@ -1,0 +1,22 @@
+{% extends "layout.twig" %}
+
+{% block content %}
+  <h1>Settings</h1>
+  <p>Administrator settings for the mail panel.</p>
+  <nav aria-label="Settings sections">
+    <ul>
+      <li>
+        <a href="/settings/api-keys">API keys</a>
+        &mdash; create, review, and revoke send-only API credentials.
+      </li>
+      <li>
+        <a href="/settings/diagnostics">Diagnostics</a>
+        &mdash; worker heartbeat, queue depth, leases, failures, and account pause state.
+      </li>
+      <li>
+        <a href="/settings/password">Change password</a>
+        &mdash; update the administrator password.
+      </li>
+    </ul>
+  </nav>
+{% endblock %}
